@@ -1,0 +1,35 @@
+
+# pull official base image
+FROM python:3.9-alpine
+
+# Update pip
+RUN python -m pip install --upgrade pip
+
+# Expose port
+EXPOSE 8081
+
+# Configure datadog
+LABEL "com.datadoghq.ad.check_names"='["book"]'
+LABEL "com.datadoghq.ad.init_configs"='[{}]'
+LABEL "com.datadoghq.ad.instances"='[{"book_status_url": "http://%%host%%:%%port%%/book_status"}]'
+LABEL "com.datadoghq.ad.logs"='[{"source": "book", "service": "webapp"}]'
+
+# set work directory
+WORKDIR /app
+
+# Prevents Python from writing pyc files to disc (equivalent to python -B option)
+ENV PYTHONDONTWRITEBYTECODE=1
+
+# Prevents Python from buffering stdout and stderr (equivalent to python -u option)
+ENV PYTHONUNBUFFERED=1
+# install dependencies
+RUN pip install --upgrade pip
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY . /app
+
+RUN adduser -u 5678 --disabled-password --gecos "" appuser && chown -R appuser /app
+USER appuser
+
+CMD ["python", "application.py"]
